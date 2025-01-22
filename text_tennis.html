@@ -61,7 +61,7 @@
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
 
-        // Static player IDs (just for testing purposes)
+        // Static player IDs (for testing purposes)
         const player1Id = '15l2qxv67kr'; // Static ID for Player 1
         const player2Id = 'f1yflp9klhh'; // Static ID for Player 2
 
@@ -77,40 +77,61 @@
         // Assign player role and update game state
         async function assignRole(snapshot) {
             const data = snapshot.val();
-            console.log("Current Game Data:", data);
+            console.log("Current Game Data (assignRole):", data);
 
+            // Check if both players are assigned already
             if (!data || (!data.player1 && !data.player2)) {
-                // No players assigned yet, create both slots
+                console.log("Game is empty, waiting for players.");
                 instructionsElement.textContent = "Waiting for a player to join...";
             } else if (!data.player1) {
                 // Assign Player 1 with a static ID
-                await set(ref(database, 'tennis-game/player1'), player1Id);
-                playerId = player1Id; // Set playerId to static player1Id
-                playerRole = 'player1';
-                instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
-                
+                console.log("Assigning Player 1...");
+                await set(ref(database, 'tennis-game/player1'), player1Id)
+                    .then(() => {
+                        playerId = player1Id; // Set playerId to static player1Id
+                        playerRole = 'player1';
+                        instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
+                        console.log('Player 1 assigned with ID: ', player1Id);
+                    })
+                    .catch((error) => {
+                        console.error("Error assigning Player 1:", error);
+                    });
+
                 // Set the turn to player1
-                await set(ref(database, 'tennis-game/turn'), 'player1');
+                await set(ref(database, 'tennis-game/turn'), 'player1')
+                    .catch((error) => {
+                        console.error("Error setting turn to player1:", error);
+                    });
             } else if (!data.player2) {
                 // Assign Player 2 with a static ID
-                await set(ref(database, 'tennis-game/player2'), player2Id);
-                playerId = player2Id; // Set playerId to static player2Id
-                playerRole = 'player2';
-                instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
-                
+                console.log("Assigning Player 2...");
+                await set(ref(database, 'tennis-game/player2'), player2Id)
+                    .then(() => {
+                        playerId = player2Id; // Set playerId to static player2Id
+                        playerRole = 'player2';
+                        instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
+                        console.log('Player 2 assigned with ID: ', player2Id);
+                    })
+                    .catch((error) => {
+                        console.error("Error assigning Player 2:", error);
+                    });
+
                 // Set the ready flag to true and set the turn
-                await update(gameRef, { ready: true, turn: 'player1' });
+                await update(gameRef, { ready: true, turn: 'player1' })
+                    .catch((error) => {
+                        console.error("Error setting game ready and turn:", error);
+                    });
             } else {
                 // Game full
+                console.log("Game is full, no slots available.");
                 instructionsElement.textContent = "Game is full. Try again later.";
-                console.log("Game is full. No slots available.");
             }
         }
 
         // Start the game and enable the roll button when ready
         function startGame(snapshot) {
             const data = snapshot.val();
-            console.log("Start Game Data:", data);
+            console.log("Start Game Data (startGame):", data);
 
             if (data && data.ready && !opponentReady) {
                 opponentReady = true;
@@ -122,7 +143,7 @@
         // Play turn logic: Enable the roll button if it's the player's turn
         function playTurn(snapshot) {
             const data = snapshot.val();
-            console.log("Play Turn Data:", data);
+            console.log("Play Turn Data (playTurn):", data);
 
             if (data && data.turn === playerRole) {
                 instructionsElement.textContent = "It's your turn! Roll the d20.";
