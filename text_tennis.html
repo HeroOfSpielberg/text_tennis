@@ -97,7 +97,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, push } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, push, get } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
         // Firebase configuration (replace with your actual project details)
         const firebaseConfig = {
@@ -217,7 +217,8 @@
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
             
-            const gameData = (await get(gameRef)).val();
+            const snapshot = await get(gameRef)
+            const gameData = snapshot.val();
             const currentScores = gameData.scores || {player1: 0, player2: 0};
             currentScores[playerRole]++;
 
