@@ -11,30 +11,76 @@
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #player-info {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #player-info.player1 {
+            background-color: #ff9999;
+            color: #990000;
+        }
+        #player-info.player2 {
+            background-color: #99ccff;
+            color: #003366;
+        }
+        #turn-indicator {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #99ff99;
+            color: #006600;
+            display: none;
         }
         #game-log {
-            max-width: 600px;
+            max-width: 100%;
             margin: 20px auto;
             border: 1px solid #ccc;
             padding: 10px;
             background: #f9f9f9;
-            height: 300px;
+            height: 200px;
             overflow-y: auto;
+            text-align: left;
         }
         button {
             padding: 10px 20px;
             margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <h1>Super Interactive Tennis Game</h1>
-    <div>
-        <p id="instructions">Waiting for another player to join...</p>
+    <div id="game-container">
+        <h1>Interactive Tennis Game</h1>
+        <div id="player-info"></div>
+        <div id="turn-indicator"></div>
+        <div id="instructions">Waiting for another player to join...</div>
+        <div id="game-log"></div>
+        <button id="roll-btn" disabled>Roll d20</button>
+        <button id="reset-btn">Reset Game</button>
     </div>
-    <div id="game-log"></div>
-    <button id="roll-btn" disabled>Roll d20</button>
-    <button id="reset-btn">Reset Game</button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
@@ -60,6 +106,8 @@
         const instructionsElement = document.getElementById('instructions');
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
+        const playerInfoElement = document.getElementById('player-info');
+        const turnIndicatorElement = document.getElementById('turn-indicator');
 
         let playerId = null;
         let playerRole = null;
@@ -68,6 +116,16 @@
         function logMessage(message) {
             logElement.innerHTML += `<p>${message}</p>`;
             logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updatePlayerInfo() {
+            playerInfoElement.textContent = `You are ${playerRole === 'player1' ? 'Player 1' : 'Player 2'}`;
+            playerInfoElement.className = playerRole;
+        }
+
+        function updateTurnIndicator(isYourTurn) {
+            turnIndicatorElement.style.display = isYourTurn ? 'block' : 'none';
+            turnIndicatorElement.textContent = isYourTurn ? "It's your turn!" : "";
         }
 
         // Assign player role and update game state
@@ -97,6 +155,8 @@
                 instructionsElement.textContent = "Game is full. Try again later.";
                 console.log("Game is full. No slots available.");
             }
+
+            updatePlayerInfo();
         }
 
         // Start the game and enable the roll button when ready
@@ -108,6 +168,7 @@
                 opponentReady = true;
                 instructionsElement.textContent = playerRole === 'player1' ? "You will serve first!" : "Player 1 will serve!";
                 rollButton.disabled = playerRole !== 'player1';
+                updateTurnIndicator(playerRole === 'player1');
             }
         }
 
@@ -119,8 +180,10 @@
             if (data && data.turn === playerRole) {
                 instructionsElement.textContent = "It's your turn! Roll the d20.";
                 rollButton.disabled = false;
+                updateTurnIndicator(true);
             } else {
                 rollButton.disabled = true;
+                updateTurnIndicator(false);
             }
         }
 
@@ -144,6 +207,9 @@
                     playerId = null;
                     playerRole = null;
                     opponentReady = false;
+                    playerInfoElement.textContent = '';
+                    playerInfoElement.className = '';
+                    updateTurnIndicator(false);
                 })
                 .catch((error) => {
                     console.error('Error resetting the game:', error);
