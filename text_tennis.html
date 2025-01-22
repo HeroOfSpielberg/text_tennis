@@ -38,7 +38,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
         // Your Firebase config (replace with your project's details)
         const firebaseConfig = {
@@ -61,7 +61,7 @@
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
 
-        let playerId = null; // Unique ID for each player
+        let playerId = null; // This will hold the unique player ID
         let playerRole = null; // 'player1' or 'player2'
         let opponentReady = false;
 
@@ -70,15 +70,26 @@
             logElement.scrollTop = logElement.scrollHeight;
         }
 
+        // Generate a new player ID
+        function generatePlayerId() {
+            return Math.random().toString(36).substring(2, 15);
+        }
+
         // Assign player role and update game state
         async function assignRole(snapshot) {
             const data = snapshot.val();
             console.log("Current Game Data:", data);
 
             if (!data || !data.player1) {
-                // Assign Player 1 with a unique id
+                // Assign Player 1 with a unique id if not already set in Firebase
                 if (!playerId) {
-                    playerId = Math.random().toString(36).substring(2, 15); // Generate playerId if not already generated
+                    const existingPlayerId = localStorage.getItem('playerId');
+                    if (existingPlayerId) {
+                        playerId = existingPlayerId; // Use the stored player ID from localStorage
+                    } else {
+                        playerId = generatePlayerId(); // Generate a new ID if no stored one
+                        localStorage.setItem('playerId', playerId); // Store the player ID in localStorage for future use
+                    }
                 }
                 await set(ref(database, 'tennis-game/player1'), playerId);
                 playerRole = 'player1';
@@ -87,9 +98,15 @@
                 // Set the turn to player1
                 await set(ref(database, 'tennis-game/turn'), 'player1');
             } else if (!data.player2) {
-                // Assign Player 2 with a unique id
+                // Assign Player 2 with a unique id if not already set in Firebase
                 if (!playerId) {
-                    playerId = Math.random().toString(36).substring(2, 15); // Generate playerId if not already generated
+                    const existingPlayerId = localStorage.getItem('playerId');
+                    if (existingPlayerId) {
+                        playerId = existingPlayerId; // Use the stored player ID from localStorage
+                    } else {
+                        playerId = generatePlayerId(); // Generate a new ID if no stored one
+                        localStorage.setItem('playerId', playerId); // Store the player ID in localStorage for future use
+                    }
                 }
                 await set(ref(database, 'tennis-game/player2'), playerId);
                 playerRole = 'player2';
@@ -142,6 +159,7 @@
 
         // Reset the game data
         function resetGame() {
+            localStorage.removeItem('playerId'); // Remove player ID from local storage when resetting
             set(ref(database, 'tennis-game'), null) // Clear the game data
                 .then(() => {
                     logMessage('Game has been reset.');
