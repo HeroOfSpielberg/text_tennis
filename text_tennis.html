@@ -69,6 +69,17 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
+        #score-board {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #winning-animation {
+            font-size: 36px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-top: 20px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -76,10 +87,12 @@
         <h1>Interactive Tennis Game</h1>
         <div id="player-info"></div>
         <div id="turn-indicator"></div>
+        <div id="score-board">Score: <span id="player1-score">0</span> - <span id="player2-score">0</span></div>
         <div id="instructions">Waiting for another player to join...</div>
         <div id="game-log"></div>
         <button id="roll-btn" disabled>Roll d20</button>
         <button id="reset-btn">Reset Game</button>
+        <div id="winning-animation"></div>
     </div>
 
     <script type="module">
@@ -108,6 +121,9 @@
         const resetButton = document.getElementById('reset-btn');
         const playerInfoElement = document.getElementById('player-info');
         const turnIndicatorElement = document.getElementById('turn-indicator');
+        const player1ScoreElement = document.getElementById('player1-score');
+        const player2ScoreElement = document.getElementById('player2-score');
+        const winningAnimationElement = document.getElementById('winning-animation');
 
         let playerId = null;
         let playerRole = null;
@@ -128,7 +144,11 @@
             turnIndicatorElement.textContent = isYourTurn ? "It's your turn!" : "";
         }
 
-        // Assign player role and update game state
+        function updateScoreBoard(scores) {
+            player1ScoreElement.textContent = scores.player1;
+            player2ScoreElement.textContent = scores.player2;
+        }
+
         async function assignRole(snapshot) {
             const data = snapshot.val();
             console.log("Current Game Data:", data);
@@ -139,6 +159,7 @@
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
                 await set(ref(database, 'tennis-game/turn'), 'player1');
+                await set(ref(database, 'tennis-game/scores'), {player1: 0, player2: 0});
             } else if (!data.player2 && data.player1 !== playerId) {
                 playerId = push(ref(database, 'temp')).key;
                 await set(ref(database, 'tennis-game/player2'), playerId);
@@ -157,9 +178,11 @@
             }
 
             updatePlayerInfo();
+            if (data && data.scores) {
+                updateScoreBoard(data.scores);
+            }
         }
 
-        // Start the game and enable the roll button when ready
         function startGame(snapshot) {
             const data = snapshot.val();
             console.log("Start Game Data:", data);
@@ -172,7 +195,6 @@
             }
         }
 
-        // Play turn logic: Enable the roll button if it's the player's turn
         function playTurn(snapshot) {
             const data = snapshot.val();
             console.log("Play Turn Data:", data);
@@ -185,43 +207,78 @@
                 rollButton.disabled = true;
                 updateTurnIndicator(false);
             }
+
+            if (data && data.scores) {
+                updateScoreBoard(data.scores);
+            }
         }
 
-        // Roll the d20 and update the game state
-        function rollD20() {
+        async function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
-            update(gameRef, {
+            
+            const gameData = (await get(gameRef)).val();
+            const currentScores = gameData.scores || {player1: 0, player2: 0};
+            currentScores[playerRole]++;
+
+            let winningMessage = null;
+            if (currentScores[playerRole] >= 5) {
+                winningMessage = `${playerRole.toUpperCase()} WINS THE SET!`;
+                displayWinningAnimation(playerRole);
+            }
+
+            await update(gameRef, {
                 lastRoll: playerRole,
                 lastScore: roll,
-                turn: playerRole === 'player1' ? 'player2' : 'player1'
+                turn: playerRole === 'player1' ? 'player2' : 'player1',
+                scores: currentScores
             });
+
+            if (winningMessage) {
+                logMessage(winningMessage);
+                rollButton.disabled = true;
+            }
         }
 
-        // Reset the game data
-        function resetGame() {
-            set(ref(database, 'tennis-game'), null) // Clear the game data
-                .then(() => {
-                    logMessage('Game has been reset.');
-                    instructionsElement.textContent = 'Waiting for players to join...';
-                    playerId = null;
-                    playerRole = null;
-                    opponentReady = false;
-                    playerInfoElement.textContent = '';
-                    playerInfoElement.className = '';
-                    updateTurnIndicator(false);
-                })
-                .catch((error) => {
-                    console.error('Error resetting the game:', error);
-                });
+        function displayWinningAnimation(winner) {
+            const frames = [
+                `${winner.toUpperCase()} WINS! 🎉`,
+                `${winner.toUpperCase()} WINS! 🎊`,
+                `${winner.toUpperCase()} WINS! 🏆`,
+                `${winner.toUpperCase()} WINS! 🎉🎊🏆`
+            ];
+            let frameIndex = 0;
+
+            winningAnimationElement.style.display = 'block';
+            const animationInterval = setInterval(() => {
+                winningAnimationElement.textContent = frames[frameIndex];
+                frameIndex = (frameIndex + 1) % frames.length;
+            }, 500);
+
+            setTimeout(() => {
+                clearInterval(animationInterval);
+                winningAnimationElement.style.display = 'none';
+            }, 5000);
         }
 
-        // Set up Firebase listeners
+        async function resetGame() {
+            await set(gameRef, null);
+            logMessage('Game has been reset.');
+            instructionsElement.textContent = 'Waiting for players to join...';
+            playerId = null;
+            playerRole = null;
+            opponentReady = false;
+            playerInfoElement.textContent = '';
+            playerInfoElement.className = '';
+            updateTurnIndicator(false);
+            updateScoreBoard({player1: 0, player2: 0});
+            winningAnimationElement.style.display = 'none';
+        }
+
         onValue(gameRef, assignRole);
         onValue(ref(database, 'tennis-game/ready'), startGame);
         onValue(gameRef, playTurn);
 
-        // Button event listeners
         rollButton.addEventListener('click', () => {
             rollD20();
             rollButton.disabled = true;
