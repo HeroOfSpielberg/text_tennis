@@ -3,100 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text-Based Tennis</title>
+    <title>Interactive Tennis Game</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
             text-align: center;
             padding: 20px;
         }
         #game-log {
-            margin: 20px auto;
             max-width: 600px;
-            padding: 10px;
+            margin: 20px auto;
             border: 1px solid #ccc;
-            background: white;
+            padding: 10px;
+            background: #f9f9f9;
             height: 300px;
             overflow-y: auto;
         }
         button {
             padding: 10px 20px;
-            font-size: 16px;
-            margin-top: 10px;
-            cursor: pointer;
+            margin: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Text-Based Tennis Game</h1>
-    <p>Roll a d20 to play. First to 5 points wins!</p>
-    <div id="game-log">
-        <p>Welcome to Text-Based Tennis!</p>
-        <p>It's totally fair and not rigged by Josh</p>
+    <h1>Interactive Tennis Game</h1>
+    <div>
+        <p id="instructions">Waiting for another player to join...</p>
     </div>
-    <button onclick="startGame()">Start New Game</button>
-    <script>
-        let player1Score = 0;
-        let player2Score = 0;
+    <div id="game-log"></div>
+    <button id="roll-btn" disabled>Roll d20</button>
 
-        function rollD20() {
-            return Math.floor(Math.random() * 20) + 1;
-        }
+    <script>
+        // Your Firebase config (replace with your project's config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9-rtfPTRlLyYUQUbDPSp9suUT9d2oOm4",
+            authDomain: "text-tennis.firebaseapp.com",
+            databaseURL: "https://text-tennis-default-rtdb.firebaseio.com",
+            projectId: "text-tennis",
+            storageBucket: "text-tennis.firebasestorage.app",
+            messagingSenderId: "713944993535",
+            appId: "1:713944993535:web:cdfc029fa75f5defe146ca"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.getDatabase(app);
+
+        const gameRef = firebase.ref(database, 'tennis-game');
+
+        const playerId = Math.random().toString(36).substring(2, 15); // Unique ID for each player
+        let playerRole = null; // 'player1' or 'player2'
+        let opponentReady = false;
+
+        const logElement = document.getElementById('game-log');
+        const instructionsElement = document.getElementById('instructions');
+        const rollButton = document.getElementById('roll-btn');
 
         function logMessage(message) {
-            const log = document.getElementById('game-log');
-            log.innerHTML += `<p>${message}</p>`;
-            log.scrollTop = log.scrollHeight;
+            logElement.innerHTML += `<p>${message}</p>`;
+            logElement.scrollTop = logElement.scrollHeight;
         }
 
-        function startGame() {
-            player1Score = 0;
-            player2Score = 0;
-            document.getElementById('game-log').innerHTML = "<p>New game started!</p>";
-            playMatch();
-        }
-
-        async function playMatch() {
-            while (player1Score < 5 && player2Score < 5) {
-                logMessage(`Score: Player 1 - ${player1Score}, Player 2 - ${player2Score}`);
-                logMessage("New rally begins!");
-
-                let rallyCount = 0;
-                while (true) {
-                    rallyCount++;
-                    logMessage(`Rally #${rallyCount}:`);
-                    
-                    // Player 1 rolls
-                    let p1Roll = rollD20();
-                    logMessage(`Player 1 rolls: ${p1Roll}`);
-                    if (p1Roll < 10) {
-                        logMessage("Player 1 fails to return! Point to Player 2.");
-                        player2Score++;
-                        break;
-                    }
-
-                    // Player 2 rolls
-                    let p2Roll = rollD20();
-                    logMessage(`Player 2 rolls: ${p2Roll}`);
-                    if (p2Roll < 10) {
-                        logMessage("Player 2 fails to return! Point to Player 1.");
-                        player1Score++;
-                        break;
-                    }
-                    
-                    // Wait before continuing for better readability
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            }
-
-            logMessage(`Final Score: Player 1 - ${player1Score}, Player 2 - ${player2Score}`);
-            if (player1Score > player2Score) {
-                logMessage("Player 1 wins the match!");
+        function assignRole(snapshot) {
+            const data = snapshot.val();
+            if (!data || !data.player1) {
+                firebase.set(firebase.child(gameRef, 'player1'), playerId);
+                playerRole = 'player1';
+                instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
+            } else if (!data.player2) {
+                firebase.set(firebase.child(gameRef, 'player2'), playerId);
+                playerRole = 'player2';
+                opponentReady = true;
+                instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
+                firebase.update(gameRef, { ready: true });
             } else {
-                logMessage("Player 2 wins the match!");
+                instructionsElement.textContent = "Game is full. Try again later.";
             }
         }
+
+        function startGame(snapshot) {
+            const data = snapshot.val();
+            if (data && data.ready && !opponentReady) {
+                opponentReady = true;
+                instructionsElement.textContent = playerRole === 'player1' ? "You will serve first!" : "Player 1 will serve!";
+                rollButton.disabled = false;
+            }
+        }
+
+        function playTurn(snapshot) {
+            const data = snapshot.val();
+            if (data && data.lastRoll !== playerId && data.turn === playerRole) {
+                instructionsElement.textContent = "It's your turn! Roll the d20.";
+                rollButton.disabled = false;
+            } else {
+                rollButton.disabled = true;
+            }
+        }
+
+        function rollD20() {
+            const roll = Math.floor(Math.random() * 20) + 1;
+            logMessage(`You rolled: ${roll}`);
+            firebase.update(gameRef, {
+                lastRoll: playerId,
+                lastScore: roll,
+                turn: playerRole === 'player1' ? 'player2' : 'player1'
+            });
+        }
+
+        // Set up Firebase listeners
+        firebase.onValue(gameRef, assignRole);
+        firebase.onValue(firebase.child(gameRef, 'ready'), startGame);
+        firebase.onValue(gameRef, playTurn);
+
+        // Button event
+        rollButton.addEventListener('click', () => {
+            rollD20();
+            rollButton.disabled = true;
+        });
     </script>
 </body>
 </html>
