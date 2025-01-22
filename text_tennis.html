@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Tennis Game</title>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js" type="module"></script>
+    <!-- Import Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,7 +29,7 @@
     </style>
 </head>
 <body>
-    <h1>Totally Fair and Interactive Tennis Game</h1>
+    <h1>Interactive Tennis Game</h1>
     <div>
         <p id="instructions">Waiting for another player to join...</p>
     </div>
@@ -38,9 +39,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
-        // Your Firebase config (replace with your project's details)
         const firebaseConfig = {
             apiKey: "AIzaSyA9-rtfPTRlLyYUQUbDPSp9suUT9d2oOm4",
             authDomain: "text-tennis.firebaseapp.com",
@@ -74,8 +74,7 @@
         async function assignRole(snapshot) {
             const data = snapshot.val();
 
-            // Generate a unique ID only once
-            if (!data) {
+            if (!data || (!data.player1 && !data.player2)) {
                 // If no players exist, generate unique IDs and assign them
                 const player1Id = Math.random().toString(36).substring(2, 15);
                 const player2Id = Math.random().toString(36).substring(2, 15);
@@ -125,10 +124,11 @@
 
         // Function to reset the game
         function resetGame() {
-            set(ref(database, 'tennis-game'), null) // Clear the game data
+            remove(ref(database, 'tennis-game')) // Clear the game data
                 .then(() => {
                     logMessage('Game has been reset.');
                     instructionsElement.textContent = 'Waiting for players to join...';
+                    rollButton.disabled = true;
                 })
                 .catch((error) => {
                     console.error('Error resetting the game:', error);
