@@ -65,7 +65,7 @@
         const player1Id = '15l2qxv67kr'; // Static ID for Player 1
         const player2Id = 'f1yflp9klhh'; // Static ID for Player 2
 
-        let playerId = player1Id; // Initially, set the player ID (Player 1 for example)
+        let playerId = null; // Set dynamically based on available player slots
         let playerRole = null; // 'player1' or 'player2'
         let opponentReady = false;
 
@@ -82,6 +82,7 @@
             if (!data || !data.player1) {
                 // Assign Player 1 with a static ID
                 await set(ref(database, 'tennis-game/player1'), player1Id);
+                playerId = player1Id; // Set playerId to static player1Id
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
                 
@@ -90,6 +91,7 @@
             } else if (!data.player2) {
                 // Assign Player 2 with a static ID
                 await set(ref(database, 'tennis-game/player2'), player2Id);
+                playerId = player2Id; // Set playerId to static player2Id
                 playerRole = 'player2';
                 instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
                 
