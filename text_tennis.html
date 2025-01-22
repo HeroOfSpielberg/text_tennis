@@ -38,7 +38,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, push } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
         // Firebase configuration (replace with your actual project details)
         const firebaseConfig = {
@@ -61,8 +61,8 @@
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
 
-        let playerId = Math.random().toString(36).substring(2, 15); // Generate a unique ID for each player
-        let playerRole = null; // 'player1' or 'player2'
+        let playerId = null;
+        let playerRole = null;
         let opponentReady = false;
 
         function logMessage(message) {
@@ -76,15 +76,23 @@
             console.log("Current Game Data:", data);
 
             if (!data || !data.player1) {
+                playerId = push(ref(database, 'temp')).key;
                 await set(ref(database, 'tennis-game/player1'), playerId);
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
                 await set(ref(database, 'tennis-game/turn'), 'player1');
-            } else if (!data.player2) {
+            } else if (!data.player2 && data.player1 !== playerId) {
+                playerId = push(ref(database, 'temp')).key;
                 await set(ref(database, 'tennis-game/player2'), playerId);
                 playerRole = 'player2';
                 instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
                 await update(gameRef, { ready: true, turn: 'player1' });
+            } else if (data.player1 === playerId) {
+                playerRole = 'player1';
+                instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
+            } else if (data.player2 === playerId) {
+                playerRole = 'player2';
+                instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
             } else {
                 instructionsElement.textContent = "Game is full. Try again later.";
                 console.log("Game is full. No slots available.");
@@ -99,7 +107,7 @@
             if (data && data.ready && !opponentReady) {
                 opponentReady = true;
                 instructionsElement.textContent = playerRole === 'player1' ? "You will serve first!" : "Player 1 will serve!";
-                rollButton.disabled = false;
+                rollButton.disabled = playerRole !== 'player1';
             }
         }
 
@@ -133,6 +141,9 @@
                 .then(() => {
                     logMessage('Game has been reset.');
                     instructionsElement.textContent = 'Waiting for players to join...';
+                    playerId = null;
+                    playerRole = null;
+                    opponentReady = false;
                 })
                 .catch((error) => {
                     console.error('Error resetting the game:', error);
