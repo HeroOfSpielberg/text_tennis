@@ -28,12 +28,13 @@
     </style>
 </head>
 <body>
-    <h1>Totally Fair Tennis Game</h1>
+    <h1>Interactive Tennis Game</h1>
     <div>
         <p id="instructions">Waiting for another player to join...</p>
     </div>
     <div id="game-log"></div>
     <button id="roll-btn" disabled>Roll d20</button>
+    <button id="reset-btn">Reset Game</button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
@@ -63,6 +64,7 @@
         const logElement = document.getElementById('game-log');
         const instructionsElement = document.getElementById('instructions');
         const rollButton = document.getElementById('roll-btn');
+        const resetButton = document.getElementById('reset-btn');
 
         function logMessage(message) {
             logElement.innerHTML += `<p>${message}</p>`;
@@ -110,6 +112,18 @@
             }
         }
 
+        // Function to reset the game
+        function resetGame() {
+            set(ref(database, 'tennis-game'), null) // Clear the game data
+                .then(() => {
+                    logMessage('Game has been reset.');
+                    instructionsElement.textContent = 'Waiting for players to join...';
+                })
+                .catch((error) => {
+                    console.error('Error resetting the game:', error);
+                });
+        }
+
         function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
@@ -130,6 +144,7 @@
             rollD20();
             rollButton.disabled = true;
         });
+        resetButton.addEventListener('click', resetGame);
     </script>
 </body>
 </html>
