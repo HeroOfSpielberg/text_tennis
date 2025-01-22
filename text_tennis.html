@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Totally Fair and Accurate Interactive Tennis Game</title>
+    <title>Interactive Tennis Game</title>
     <script type="module" src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
     <style>
@@ -84,7 +84,7 @@
 </head>
 <body>
     <div id="game-container">
-        <h1>Totally Fair and Interactive Tennis Game</h1>
+        <h1>Interactive Tennis Game</h1>
         <div id="player-info"></div>
         <div id="turn-indicator"></div>
         <div id="score-board">Score: <span id="player1-score">0</span> - <span id="player2-score">0</span></div>
@@ -149,8 +149,6 @@
             player2ScoreElement.textContent = scores.player2;
         }
 
-        
-
         async function assignRole(snapshot) {
             const data = snapshot.val();
             console.log("Current Game Data:", data);
@@ -197,33 +195,6 @@
             }
         }
 
-        function displayNetHitMessage() {
-            const netHitElement = document.createElement('div');
-            netHitElement.textContent = "Ball hit the net!";
-            netHitElement.style.position = 'fixed';
-            netHitElement.style.top = '50%';
-            netHitElement.style.left = '50%';
-            netHitElement.style.transform = 'translate(-50%, -50%)';
-            netHitElement.style.backgroundColor = 'yellow';
-            netHitElement.style.padding = '20px';
-            netHitElement.style.borderRadius = '10px';
-            netHitElement.style.fontWeight = 'bold';
-            netHitElement.style.zIndex = '1000';
-            document.body.appendChild(netHitElement);
-
-            let visible = true;
-            const flashInterval = setInterval(() => {
-                netHitElement.style.display = visible ? 'block' : 'none';
-                visible = !visible;
-            }, 200);
-        
-            setTimeout(() => {
-                clearInterval(flashInterval);
-                document.body.removeChild(netHitElement);
-            }, 2000);
-        }
-
-        
         function playTurn(snapshot) {
             const data = snapshot.val();
             console.log("Play Turn Data:", data);
@@ -245,13 +216,8 @@
         async function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
-
-            // Random trigger
-            if (Math.random() < 0.1 {
-                displayNetHitMessage();
-            }
             
-            const snapshot = await get(gameRef)
+            const snapshot = await get(gameRef);
             const gameData = snapshot.val();
             const currentScores = gameData.scores || {player1: 0, player2: 0};
             currentScores[playerRole]++;
