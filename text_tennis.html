@@ -61,7 +61,7 @@
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
 
-        let playerId = Math.random().toString(36).substring(2, 15); // Unique ID for each player
+        let playerId = null; // Unique ID for each player
         let playerRole = null; // 'player1' or 'player2'
         let opponentReady = false;
 
@@ -77,6 +77,9 @@
 
             if (!data || !data.player1) {
                 // Assign Player 1 with a unique id
+                if (!playerId) {
+                    playerId = Math.random().toString(36).substring(2, 15); // Generate playerId if not already generated
+                }
                 await set(ref(database, 'tennis-game/player1'), playerId);
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
@@ -84,7 +87,10 @@
                 // Set the turn to player1
                 await set(ref(database, 'tennis-game/turn'), 'player1');
             } else if (!data.player2) {
-                // Assign Player 2 with a new id
+                // Assign Player 2 with a unique id
+                if (!playerId) {
+                    playerId = Math.random().toString(36).substring(2, 15); // Generate playerId if not already generated
+                }
                 await set(ref(database, 'tennis-game/player2'), playerId);
                 playerRole = 'player2';
                 instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
