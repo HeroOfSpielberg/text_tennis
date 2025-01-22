@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>Totally Fair Not Rigged Tennis Game</h1>
+    <h1>Interactive Tennis Game</h1>
     <div>
         <p id="instructions">Waiting for another player to join...</p>
     </div>
@@ -120,9 +120,9 @@
         }
 
         // Set up Firebase listeners
-        firebase.onValue(gameRef, assignRole);
-        firebase.onValue(firebase.child(gameRef, 'ready'), startGame);
-        firebase.onValue(gameRef, playTurn);
+        firebase.onValue(gameRef, (snapshot) => assignRole(snapshot));
+        firebase.onValue(firebase.child(gameRef, 'ready'), (snapshot) => startGame(snapshot));
+        firebase.onValue(gameRef, (snapshot) => playTurn(snapshot));
 
         // Button event
         rollButton.addEventListener('click', () => {
