@@ -80,6 +80,22 @@
             margin-top: 20px;
             display: none;
         }
+        #net-hit-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 0, 0, 0.8);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -94,6 +110,7 @@
         <button id="reset-btn">Reset Game</button>
         <div id="winning-animation"></div>
     </div>
+    <div id="net-hit-message">YOU HIT THE TOP OF THE NET!</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
@@ -147,6 +164,22 @@
         function updateScoreBoard(scores) {
             player1ScoreElement.textContent = scores.player1;
             player2ScoreElement.textContent = scores.player2;
+        }
+
+        function displayNetHitMessage() {
+            const netHitElement = document.getElementById('net-hit-message');
+            netHitElement.style.display = 'flex';
+            
+            let visible = true;
+            const flashInterval = setInterval(() => {
+                netHitElement.style.display = visible ? 'flex' : 'none';
+                visible = !visible;
+            }, 500);
+
+            setTimeout(() => {
+                clearInterval(flashInterval);
+                netHitElement.style.display = 'none';
+            }, 3000);
         }
 
         async function assignRole(snapshot) {
@@ -216,6 +249,12 @@
         async function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
+            
+            // 50% chance of hitting the net
+            if (Math.random() < 0.5) {
+                displayNetHitMessage();
+                logMessage("You hit the top of the net!");
+            }
             
             const snapshot = await get(gameRef);
             const gameData = snapshot.val();
