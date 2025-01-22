@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>Super Fair Tennis Game</h1>
+    <h1>Totally Fair Not Rigged Tennis Game</h1>
     <div>
         <p id="instructions">Waiting for another player to join...</p>
     </div>
@@ -36,7 +36,7 @@
     <button id="roll-btn" disabled>Roll d20</button>
 
     <script>
-        // Your Firebase config (replace with your project's config)
+        // Your Firebase config (replace with your project's details)
         const firebaseConfig = {
             apiKey: "AIzaSyA9-rtfPTRlLyYUQUbDPSp9suUT9d2oOm4",
             authDomain: "text-tennis.firebaseapp.com",
@@ -68,23 +68,30 @@
 
         function assignRole(snapshot) {
             const data = snapshot.val();
+            console.log("Database snapshot:", data);
+
             if (!data || !data.player1) {
+                // Assign Player 1
                 firebase.set(firebase.child(gameRef, 'player1'), playerId);
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
             } else if (!data.player2) {
+                // Assign Player 2
                 firebase.set(firebase.child(gameRef, 'player2'), playerId);
                 playerRole = 'player2';
                 opponentReady = true;
                 instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
                 firebase.update(gameRef, { ready: true });
             } else {
+                // Game full
                 instructionsElement.textContent = "Game is full. Try again later.";
             }
         }
 
         function startGame(snapshot) {
             const data = snapshot.val();
+            console.log("Game data:", data);
+
             if (data && data.ready && !opponentReady) {
                 opponentReady = true;
                 instructionsElement.textContent = playerRole === 'player1' ? "You will serve first!" : "Player 1 will serve!";
