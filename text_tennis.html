@@ -38,7 +38,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
-        import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
         // Your Firebase config (replace with your project's details)
         const firebaseConfig = {
@@ -56,71 +56,52 @@
         const database = getDatabase(app);
 
         const gameRef = ref(database, 'tennis-game');
-
-        const playerId = Math.random().toString(36).substring(2, 15); // Unique ID for each player
-        let playerRole = null; // 'player1' or 'player2'
-        let opponentReady = false;
-
         const logElement = document.getElementById('game-log');
         const instructionsElement = document.getElementById('instructions');
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
+
+        let playerId = Math.random().toString(36).substring(2, 15); // Unique ID for each player
+        let playerRole = null; // 'player1' or 'player2'
+        let opponentReady = false;
 
         function logMessage(message) {
             logElement.innerHTML += `<p>${message}</p>`;
             logElement.scrollTop = logElement.scrollHeight;
         }
 
-        // Function to reset the game
-        function resetGame() {
-            remove(ref(database, 'tennis-game')) // Clear the game data
-                .then(() => {
-                    logMessage('Game has been reset.');
-                    instructionsElement.textContent = 'Waiting for players to join...';
-                    rollButton.disabled = true;
-
-                    // Log the current state after reset
-                    onValue(gameRef, (snapshot) => {
-                        const data = snapshot.val();
-                        console.log('Reset state:', data); // Verify if it's really empty
-                    });
-                })
-                .catch((error) => {
-                    console.error('Error resetting the game:', error);
-                });
-        }
-
-        // Function to assign player roles
+        // Assign player role and update game state
         async function assignRole(snapshot) {
             const data = snapshot.val();
-            console.log('Current Game Data:', data); // Log current game state
+            console.log("Current Game Data:", data);
 
             if (!data || !data.player1) {
                 // Assign Player 1 with a unique id
-                const player1Id = Math.random().toString(36).substring(2, 15);
-                await set(ref(database, 'tennis-game/player1'), player1Id);
+                await set(ref(database, 'tennis-game/player1'), playerId);
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
-                console.log('Assigned Player 1:', player1Id);
+                
+                // Set the turn to player1
+                await set(ref(database, 'tennis-game/turn'), 'player1');
             } else if (!data.player2) {
                 // Assign Player 2 with a new id
-                const player2Id = Math.random().toString(36).substring(2, 15);
-                await set(ref(database, 'tennis-game/player2'), player2Id);
+                await set(ref(database, 'tennis-game/player2'), playerId);
                 playerRole = 'player2';
-                opponentReady = true;
                 instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
-                await update(gameRef, { ready: true });
-                console.log('Assigned Player 2:', player2Id);
+                
+                // Set the ready flag to true and set the turn
+                await update(gameRef, { ready: true, turn: 'player1' });
             } else {
                 // Game full
                 instructionsElement.textContent = "Game is full. Try again later.";
-                console.log('Game is full');
+                console.log("Game is full. No slots available.");
             }
         }
 
-        // Function to start the game once players are assigned
+        // Start the game and enable the roll button when ready
         function startGame(snapshot) {
             const data = snapshot.val();
+            console.log("Start Game Data:", data);
 
             if (data && data.ready && !opponentReady) {
                 opponentReady = true;
@@ -129,10 +110,12 @@
             }
         }
 
-        // Function to handle the turn logic and roll the dice
+        // Play turn logic: Enable the roll button if it's the player's turn
         function playTurn(snapshot) {
             const data = snapshot.val();
-            if (data && data.lastRoll !== playerId && data.turn === playerRole) {
+            console.log("Play Turn Data:", data);
+
+            if (data && data.turn === playerRole) {
                 instructionsElement.textContent = "It's your turn! Roll the d20.";
                 rollButton.disabled = false;
             } else {
@@ -140,6 +123,7 @@
             }
         }
 
+        // Roll the d20 and update the game state
         function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
@@ -150,17 +134,28 @@
             });
         }
 
+        // Reset the game data
+        function resetGame() {
+            set(ref(database, 'tennis-game'), null) // Clear the game data
+                .then(() => {
+                    logMessage('Game has been reset.');
+                    instructionsElement.textContent = 'Waiting for players to join...';
+                })
+                .catch((error) => {
+                    console.error('Error resetting the game:', error);
+                });
+        }
+
         // Set up Firebase listeners
         onValue(gameRef, assignRole);
         onValue(ref(database, 'tennis-game/ready'), startGame);
         onValue(gameRef, playTurn);
 
-        // Button events
+        // Button event listeners
         rollButton.addEventListener('click', () => {
             rollD20();
             rollButton.disabled = true;
         });
-
         resetButton.addEventListener('click', resetGame);
     </script>
 </body>
