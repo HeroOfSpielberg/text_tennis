@@ -40,7 +40,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
-        // Your Firebase config (replace with your project's details)
+        // Firebase configuration (replace with your actual project details)
         const firebaseConfig = {
             apiKey: "AIzaSyA9-rtfPTRlLyYUQUbDPSp9suUT9d2oOm4",
             authDomain: "text-tennis.firebaseapp.com",
@@ -61,7 +61,7 @@
         const rollButton = document.getElementById('roll-btn');
         const resetButton = document.getElementById('reset-btn');
 
-        // Static player IDs for testing
+        // Static player IDs (just for testing purposes)
         const player1Id = '15l2qxv67kr'; // Static ID for Player 1
         const player2Id = 'f1yflp9klhh'; // Static ID for Player 2
 
@@ -79,7 +79,10 @@
             const data = snapshot.val();
             console.log("Current Game Data:", data);
 
-            if (!data || !data.player1) {
+            if (!data || (!data.player1 && !data.player2)) {
+                // No players assigned yet, create both slots
+                instructionsElement.textContent = "Waiting for a player to join...";
+            } else if (!data.player1) {
                 // Assign Player 1 with a static ID
                 await set(ref(database, 'tennis-game/player1'), player1Id);
                 playerId = player1Id; // Set playerId to static player1Id
