@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-Based Tennis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        #game-log {
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: white;
+            height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text-Based Tennis Game</h1>
+    <p>Roll a d20 to play. First to 5 points wins!</p>
+    <div id="game-log">
+        <p>Welcome to Text-Based Tennis!</p>
+        <p>It's totally fair and not rigged by Josh</p>
+    </div>
+    <button onclick="startGame()">Start New Game</button>
+    <script>
+        let player1Score = 0;
+        let player2Score = 0;
+
+        function rollD20() {
+            return Math.floor(Math.random() * 20) + 1;
+        }
+
+        function logMessage(message) {
+            const log = document.getElementById('game-log');
+            log.innerHTML += `<p>${message}</p>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function startGame() {
+            player1Score = 0;
+            player2Score = 0;
+            document.getElementById('game-log').innerHTML = "<p>New game started!</p>";
+            playMatch();
+        }
+
+        async function playMatch() {
+            while (player1Score < 5 && player2Score < 5) {
+                logMessage(`Score: Player 1 - ${player1Score}, Player 2 - ${player2Score}`);
+                logMessage("New rally begins!");
+
+                let rallyCount = 0;
+                while (true) {
+                    rallyCount++;
+                    logMessage(`Rally #${rallyCount}:`);
+                    
+                    // Player 1 rolls
+                    let p1Roll = rollD20();
+                    logMessage(`Player 1 rolls: ${p1Roll}`);
+                    if (p1Roll < 10) {
+                        logMessage("Player 1 fails to return! Point to Player 2.");
+                        player2Score++;
+                        break;
+                    }
+
+                    // Player 2 rolls
+                    let p2Roll = rollD20();
+                    logMessage(`Player 2 rolls: ${p2Roll}`);
+                    if (p2Roll < 10) {
+                        logMessage("Player 2 fails to return! Point to Player 1.");
+                        player1Score++;
+                        break;
+                    }
+                    
+                    // Wait before continuing for better readability
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+
+            logMessage(`Final Score: Player 1 - ${player1Score}, Player 2 - ${player2Score}`);
+            if (player1Score > player2Score) {
+                logMessage("Player 1 wins the match!");
+            } else {
+                logMessage("Player 2 wins the match!");
+            }
+        }
+    </script>
+</body>
+</html>
