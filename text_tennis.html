@@ -35,7 +35,10 @@
     <div id="game-log"></div>
     <button id="roll-btn" disabled>Roll d20</button>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+
         // Your Firebase config (replace with your project's details)
         const firebaseConfig = {
             apiKey: "AIzaSyA9-rtfPTRlLyYUQUbDPSp9suUT9d2oOm4",
@@ -48,10 +51,10 @@
         };
 
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.getDatabase(app);
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-        const gameRef = firebase.ref(database, 'tennis-game');
+        const gameRef = ref(database, 'tennis-game');
 
         const playerId = Math.random().toString(36).substring(2, 15); // Unique ID for each player
         let playerRole = null; // 'player1' or 'player2'
@@ -66,22 +69,21 @@
             logElement.scrollTop = logElement.scrollHeight;
         }
 
-        function assignRole(snapshot) {
+        async function assignRole(snapshot) {
             const data = snapshot.val();
-            console.log("Database snapshot:", data);
 
             if (!data || !data.player1) {
                 // Assign Player 1
-                firebase.set(firebase.child(gameRef, 'player1'), playerId);
+                await set(ref(database, 'tennis-game/player1'), playerId);
                 playerRole = 'player1';
                 instructionsElement.textContent = "You are Player 1. Waiting for Player 2...";
             } else if (!data.player2) {
                 // Assign Player 2
-                firebase.set(firebase.child(gameRef, 'player2'), playerId);
+                await set(ref(database, 'tennis-game/player2'), playerId);
                 playerRole = 'player2';
                 opponentReady = true;
                 instructionsElement.textContent = "You are Player 2. Player 1 will serve!";
-                firebase.update(gameRef, { ready: true });
+                await update(gameRef, { ready: true });
             } else {
                 // Game full
                 instructionsElement.textContent = "Game is full. Try again later.";
@@ -90,7 +92,6 @@
 
         function startGame(snapshot) {
             const data = snapshot.val();
-            console.log("Game data:", data);
 
             if (data && data.ready && !opponentReady) {
                 opponentReady = true;
@@ -112,7 +113,7 @@
         function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
-            firebase.update(gameRef, {
+            update(gameRef, {
                 lastRoll: playerId,
                 lastScore: roll,
                 turn: playerRole === 'player1' ? 'player2' : 'player1'
@@ -120,9 +121,9 @@
         }
 
         // Set up Firebase listeners
-        firebase.onValue(gameRef, (snapshot) => assignRole(snapshot));
-        firebase.onValue(firebase.child(gameRef, 'ready'), (snapshot) => startGame(snapshot));
-        firebase.onValue(gameRef, (snapshot) => playTurn(snapshot));
+        onValue(gameRef, assignRole);
+        onValue(ref(database, 'tennis-game/ready'), startGame);
+        onValue(gameRef, playTurn);
 
         // Button event
         rollButton.addEventListener('click', () => {
