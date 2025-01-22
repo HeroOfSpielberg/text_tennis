@@ -149,6 +149,8 @@
             player2ScoreElement.textContent = scores.player2;
         }
 
+        
+
         async function assignRole(snapshot) {
             const data = snapshot.val();
             console.log("Current Game Data:", data);
@@ -195,6 +197,33 @@
             }
         }
 
+        function displayNetHitMessage() {
+            const netHitElement = document.createElement('div');
+            netHitElement.textContent = "Ball hit the net!";
+            netHitElement.style.position = 'fixed';
+            netHitElement.style.top = '50%';
+            netHitElement.style.left = '50%';
+            netHitElement.style.transform = 'translate(-50%, -50%)';
+            netHitElement.style.backgroundColor = 'yellow';
+            netHitElement.style.padding = '20px';
+            netHitElement.style.borderRadius = '10px';
+            netHitElement.style.fontWeight = 'bold';
+            netHitElement.style.zIndex = '1000';
+            document.body.appendChild(netHitElement);
+
+            let visible = true;
+            const flashInterval = setInterval(() => {
+                netHitElement.style.display = visible ? 'block' : 'none';
+                visible = !visible;
+            }, 200);
+        
+            setTimeout(() => {
+                clearInterval(flashInterval);
+                document.body.removeChild(netHitElement);
+            }, 2000);
+        }
+
+        
         function playTurn(snapshot) {
             const data = snapshot.val();
             console.log("Play Turn Data:", data);
@@ -216,6 +245,11 @@
         async function rollD20() {
             const roll = Math.floor(Math.random() * 20) + 1;
             logMessage(`You rolled: ${roll}`);
+
+            // Random trigger
+            if (Math.random() < 0.1 {
+                displayNetHitMessage();
+            }
             
             const snapshot = await get(gameRef)
             const gameData = snapshot.val();
